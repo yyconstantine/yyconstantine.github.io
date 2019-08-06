@@ -1,0 +1,85 @@
+### 记一次手写数据源切换的过程
+---
+- 前言：
+  - 公司的后台项目是基于Spring+SpringMVC+Hibernate JPA的，DAO层的逻辑是通过对jdbc和hibernate进行分装，用在项目中写原生sql的方式，将sql提交到此顶级DAO层，再执行sql的操作，并返回执行结果。
+  - 项目是部署在weblogic的，尽管在本地有persistence.xml配置文件，但实质是让项目在本地运行时使用的，生产、预发及测试环境都是直接在weblogic桑读取weblogic的配置，而weblogic本身不支持动态切换数据源。
+  - 由于使用Oracle数据，所以主从的同步采用的是Oracle自带的OGG实现的，有时会遇到同步不过去的问题，weblogic切换数据源需要重启，但是业务上的查询要求是实时的，所以需要先切换数据源，再排查问题。
+- 任务：实现对数据源的实时切换
+- 思路：
+  - 代码中使用dao的形式实质是这样的，于是大概思路为：
+    - 对service接收的dao做统一处理，可以通过工厂方法获取
+    - 在工厂方法中定义切换数据源的信号，并在service初始化dao的时候进行判断，以确定使用的是哪个dao
+    - 伪代码如下：
+```java
+@Service
+public class OrderServiceImpl {
+    @AutoWired
+    private CommonReadDao readDao;
+
+    public List<Order> query() {
+        String sql = "xxx";
+        return readDao.execute(sql, Order.class);
+    }
+}
+```
+- 问题：
+  - 目前实现读写分离是依赖不同数据源的配置，数据源的配置直接体现在了CommonReadDao和CommonWriteDao中，两个Dao分别继承了不同的ICommonDao接口，需要对ICommonDao进行整合，以方便在service的接收
+  - 要对所有的调用方法进行改造
+- 实现：
+- 工厂方法：
+```java
+@Component
+public class CommonDaoFactory {
+    @AutoWired
+    private CommonReadDao readDao;
+    @AutoWired
+    private CommonWriteDao writeDao;
+    private AtomicInteger signal = new AtomicInteger(0);// 数据源使用标识
+
+    public ReturnDifferentDao<CommonReadDao, CommonWriteDao, AtomicInteger> getDao() {
+        return new ReturnDifferentDao<CommonReadDao, CommonWriteDao, AtomicInteger>(readDao, writeDao, signal);
+    }
+
+    public void useReadDao() {
+        signal.set(0);
+    }
+
+    public void useWriteDao() {
+        signal.set(1);
+    }
+}
+```
+- 泛型类：
+```java
+public class ReturnDifferentDao<CommonReadDao, CommonWriteDao, AtomicInteger> {
+    public CommonReadDao readDao;
+    public CommonWriteDao writeDao;
+    public AtomicInteger signal;
+
+    public ReturnDifferentDao(CommonReadDao readDao, CommonWriteDao writeDao, AtomicInteger signal) {
+        this.readDao = readDao;
+        this.writeDao = writeDao;
+        this.signal = signal;
+    }
+}
+```
+- service调用：
+```java
+@Service
+public class OrderServiceImpl {
+    @AutoWired
+    private CommonDaoFactory factory;
+
+    private ICommonDao dao;
+
+    @PostConstruc
+    public void init() {
+        dao = factory.getDao().signal.get() == 0 ? factory.getDao().readDao : factory.getDao().writeDao;
+    }
+
+    public String query() {
+        String sql = "xxx";
+        return dao.execute(sql, Order.class);
+    }
+}
+```
