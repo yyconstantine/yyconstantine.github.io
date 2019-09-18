@@ -1,0 +1,163 @@
+---
+layout: post
+title: 初识Maven依赖管理
+subtitle: Maven的父子依赖关系及不同的依赖管理方式
+date: 2019-09-18
+author: yyconstantine
+header-img: img/post-bg-universe.jpg
+catalog: true
+tags:
+	- 构建工具
+---
+
+
+
+### Maven依赖管理
+
+> 本文主要总结了，在多module的项目中，父子依赖关系是如何创建及管理的。
+
+---
+
+#### 前提
+
+现在假设有这样一个项目：实现一个简单的rpc，则我们需要三个模块：
+
+- 注册中心
+- 服务消费方
+- 服务提供方
+
+其中，服务提供方需要注册到注册中心，服务消费方需要从注册中心获取服务提供方的列表，则三个模块都需要注册中心的依赖；服务消费方和服务提供方之间需要进行通信，则这两个模块都需要通信的依赖，所以我们构建项目结构如下👇：
+
+![project-structure](D:\vscode_tmp\pics\maven-project-structure.png)
+
+其中，rpc-root为父模块，抽象出来管理子项目的公共依赖，使所有使用相同依赖的子项目保持依赖版本的一致。
+
+---
+
+#### 如何创建一个父子模块的依赖关系
+
+首先，父子模块的关系体现在
+
+- 文件目录结构上的层级
+- pom中的管理
+
+其中，我们在预设的父模块pom.xml中添加如下标签：
+
+```xml
+<modules>
+    <module>rpc-discover</module>
+    <module>rpc-provider</module>
+    <module>rpc-consumer</module>
+</modules>
+```
+
+这样，我们就指定了rpc-discover、rpc-provider、rpc-consumer为rpc-root的子模块，子模块可以使用父模块的依赖。
+
+---
+
+#### dependencyManagement
+
+在rpc-root中，通过使用```<dependencyManagement></dependencyManagement>```标签来管理依赖的版本。
+
+- rpc-root.xml
+
+  ```xml
+  <groupId>me.sxl</groupId>
+  <artifactId>rpc-root</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  
+  <modules>
+      <module>rpc-discover</module>
+      <module>rpc-provider</module>
+      <module>rpc-consumer</module>
+  </modules>
+  
+  <properties>
+      <lombok.version>1.18.8</lombok.version>
+  </properties>
+  
+  <dependencyManagement>
+      <dependencies>
+          <dependency>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <optional>true</optional>
+              <version>${lombok.version}</version>
+          </dependency>
+      </dependencies>
+  </dependencyManagement>
+  ```
+
+- rpc-discover.xml
+
+  ```xml
+  <parent>
+      <groupId>me.sxl</groupId>
+  	<artifactId>rpc-root</artifactId>
+  	<version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <artifactId>rpc-discover</artifactId>
+  <packaging>jar</packaging>
+  
+  <dependencies>
+      <dependency>
+          <groupId>org.projectlombok</groupId>
+          <artifactId>lombok</artifactId>
+      </dependency>
+  </dependencies>
+  ```
+
+这样，我们就可以在rpc-discover模块中使用版本为1.18.8的lombok依赖，再添加更多的依赖，只需要在父模块中对依赖的版本进行统一的管理，子模块只需要继承即可使用。
+
+---
+
+#### dependencies
+
+不同于```<dependencyManagement></dependencyManagement>```这对标签，在```<dependencies></dependencies>```中引入的依赖都会被子项目自动引入，并默认被所有的子项目继承。
+
+- rpc-root.xml
+
+  ```xml
+  <groupId>me.sxl</groupId>
+  <artifactId>rpc-root</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  
+  <modules>
+      <module>rpc-discover</module>
+      <module>rpc-provider</module>
+      <module>rpc-consumer</module>
+  </modules>
+  
+  <properties>
+      <lombok.version>1.18.8</lombok.version>
+  </properties>
+  
+  <dependencies>
+      <dependency>
+          <groupId>org.projectlombok</groupId>
+          <artifactId>lombok</artifactId>
+          <optional>true</optional>
+          <version>${lombok.version}</version>
+      </dependency>
+  </dependencies>
+  ```
+
+- rpc-discover.xml
+
+  ```xml
+  <parent>
+      <groupId>me.sxl</groupId>
+  	<artifactId>rpc-root</artifactId>
+  	<version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <artifactId>rpc-discover</artifactId>
+  ```
+
+---
+
+#### 总结
+
+**dependencyManagement**内只进行依赖声明，不实现引入，所以子项目使用dependencyManagement的依赖需要显示地声明；只有在子项目中写了该依赖项，并且没有指定具体版本，才会从父项目中继承该项，并且 version 和 scope 都读取自父 pom; 另外如果子项目中指定了版本号，那么会使用子项目中指定的版本。
+
+**dependencies**的子项目回自动继承声明的全部依赖。
