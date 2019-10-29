@@ -29,6 +29,7 @@ tags:
 
 #### 2.搭建一个简单的dubbo多服务项目
 - 引入必要依赖
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -188,8 +189,10 @@ tags:
 
 </project>
 ```
+
 - 创建服务提供方
     - 这里主要发布两个服务的接口，一个支付接口，一个支付流水接口
+    
     ```java
     public interface PayService {
     
@@ -211,9 +214,11 @@ tags:
     
     }
     ```
+    
 - 创建服务提供者
     - 配置文件如下：
-    ```yaml
+   
+   ```yaml
     server:
       port: 8081
     
@@ -235,7 +240,9 @@ tags:
         # 注册到本地的zookeeper,可指向自定义的ip和端口
         address: zookeeper://127.0.0.1:2181
     ```
+    
     - 创建接口对应的实现类，注意这里的```@Service```不是Spring的注解
+    
     ```java
     import me.sxl.common.pay.PayService;
     import org.apache.dubbo.config.annotation.Service;
@@ -250,10 +257,12 @@ tags:
     
     }
     ```
+    
     - 以上，我们完成了支付服务的dubbo接口，打印流水服务同理，只需要实现对应的service接口，并更改其tomcat端口号、项目名及dubbo的扫描路径
     
 - 创建服务消费方
     - 对服务提供方的接口，我们分别在消费方中进行调用，注意通过```@Reference```的方式引入service
+    
     ```java
     import me.sxl.common.pay.PayService;
     import org.apache.dubbo.config.annotation.Reference;
@@ -278,7 +287,9 @@ tags:
     
     }
     ```
+    
     - 配置文件如下：
+    
     ```yaml
     server:
       port: 8901
@@ -295,6 +306,7 @@ tags:
       registry:
         address: zookeeper://127.0.0.1:2181
     ```
+    
     - 支付流水同理，在这里不再演示
     
 - 至此，dubbo接口发布和调用都准备完毕，我们按照provider => consumer的顺序启动服务，并通过curl/postman的方式请求consumer发布的http接口即可验证正确性
