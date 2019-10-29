@@ -20,7 +20,18 @@ tags:
 
 #### 1.本地使用zookeeper搭建单机注册中心
 - 下载：[zookeeper下载传送门👉](https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/)
-- 下载并解压完成后，进行bin目录双击使用```zkServer.cmd```（Windows下）或```zkServer.sh```（Mac/Linux下），出现如下界面则证明启动成功：
+- 解压完成后，复制conf目录下的zoo_sample.cfg，创建一个zoo.cfg，并配置如下：
+
+- ```
+  tickTime=2000
+  initLimit=10
+  syncLimit=5
+  dataDir=D:\\zookeeper-3.4.14\\data
+  dataLogDir=D:\\zookeeper\\logs
+  clientPort=2181  
+  ```
+  
+- 进入bin目录双击使用```zkServer.cmd```（Windows下）或```zkServer.sh```（Mac/Linux下），出现如下界面则证明启动成功：
     - ![zkServer-start.PNG](https://i.loli.net/2019/10/29/BbhtGEHF4UjQRXr.png)
     - 若启动失败/闪退，可在```zkServer.cmd```结尾添加pause，查看失败原因
 - 到此，我们就已经在本地启动了一个zookeeper注册中心
