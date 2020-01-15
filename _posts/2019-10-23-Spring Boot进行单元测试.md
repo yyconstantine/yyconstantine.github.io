@@ -230,6 +230,21 @@ public class AdminDaoTest {
             .file(file))
             .andExpect(status().ok());
     ```
+   - 补充：GET提交body
+   - ```java
+     mockMvc.perform(MockMvcRequestBuilders.get("/trade/thirdOrder")
+                .content("{\"body\": \"F01cuOb8x7eOPoJEQRDwB0wlWmhj2D7ta573EtYdco97uaZH4tO4n8Gbu1Om6aVgLXPM" +
+                        "/hXGXze4ytyzgyfqfA==\",\n" +
+                        "    \"key\": \"eFJtqt6Chus7ur50LzHazmkOgw1FW+dXqSgPvu1+XjcliUO/psACPTmbdrWdy8vUm" +
+                        "/zXmkEYADsMPPIN6QoehRWCf/9KhiSqvg6XLOwIkHVouKD9EPv0MsuO" +
+                        "+swWvp5pCSA4NBI3nfmQPTPwwWNfP7p6MGjrmj5HAOuZSmIhIeA=\",\n" +
+                        "    \"organCode\": \"000000\",\n" +
+                        "    \"outOrderNo\": \"7891011\",\n" +
+                        "    \"sign\": \"EC301FEFF88E548095FB83CEABE654FF\"}")
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andDo(MockMvcResultHandlers.print());
+     ```
 
 ---
 
