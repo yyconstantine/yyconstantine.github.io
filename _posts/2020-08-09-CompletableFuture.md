@@ -2,11 +2,11 @@
 
 layout:   post
 
-title:   使用Spring AOP修改方案入参实践
+title:   CompletableFuture入门指南
 
-subtitle:  使用Spring AOP修改方案入参实践
+subtitle:  Future与CompletableFuture | API | 与Reactor对比
 
-date:    2020-03-31
+date:    2020-08-09
 
 author:   yyconstantine
 
